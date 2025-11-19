@@ -8,17 +8,16 @@ app = Flask(__name__)
 model = pickle.load(open('D:/SmartBridge-Project/model.pkl', 'rb'))
 scale = pickle.load(open('D:/SmartBridge-Project/scale.pkl', 'rb'))
 
-@app.route('/')  # route to display the home page
+@app.route('/')  
 def home():
-    return render_template('index.html')  # rendering the home page
+    return render_template('index.html')  
 
-@app.route('/predict', methods=["POST", "GET"])  # route to show the predictions in a web UI
+@app.route('/predict', methods=["POST", "GET"]) 
 @app.route('/predict', methods=["POST"])
 def predict():
     input_feature = [float(x) for x in request.form.values()]
     features_values = [np.array(input_feature)]
 
-    # Use correct feature names from the scaler
     data = pd.DataFrame(features_values, columns=scale.feature_names_in_)
     data = scale.transform(data)
 
@@ -29,4 +28,5 @@ def predict():
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
+
     app.run(port=port, debug=True, use_reloader=False)
