@@ -1,107 +1,168 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Traffic Volume Estimation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交通流量时序预测 (Traffic Flow Time-Series Prediction)</title>
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         body {
-            background: url('https://cdn.vox-cdn.com/thumbor/VoARJfEKVTp6iMSzW3ExPn06TDM=/0x78:3080x900/cdn.vox-cdn.com/uploads/chorus_image/image/44219366/72499026.0.0.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: black;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
         }
-        .Login {
-            background: rgba(255,255,255,0.8);
-            padding: 30px;
-            border-radius: 10px;
-            width: 400px;
-            margin: 50px auto;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        input, select {
-            width: 90%;
-            padding: 8px;
-            margin: 5px 0 15px 0;
-            border-radius: 4px;
-            border: 1px solid #ccc;
+        h1 {
+            text-align: center;
+            color: #333;
         }
-        button {
+        #chart {
             width: 100%;
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
+            height: 500px;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <div class="Login">
-        <center><h1>Traffic Volume Estimation</h1></center>
-        <form action="{{ url_for('predict') }}" method="post">
-            <h2>Please enter the following details</h2>
-
-            <label for="temp">Temperature:</label>
-            <input type="number" step="any" name="temp" id="temp" placeholder="Temperature" required /><br>
-
-            <label for="rain">Rain:</label>
-            <input type="number" step="any" name="rain" id="rain" placeholder="Rain" required /><br>
-
-            <label for="snow">Snow:</label>
-            <input type="number" step="any" name="snow" id="snow" placeholder="Snow" required /><br>
-
-            <label for="holiday">Holiday:</label>
-            <select id="holiday" name="holiday" required>
-                <option value="7">None</option>
-                <option value="1">Columbus Day</option>
-                <option value="10">Veterans Day</option>
-                <option value="9">Thanksgiving Day</option>
-                <option value="0">Christmas Day</option>
-                <option value="6">New Years Day</option>
-                <option value="11">Washingtons Birthday</option>
-                <option value="5">Memorial Day</option>
-                <option value="2">Independence Day</option>
-                <option value="8">State Fair</option>
-                <option value="3">Labor Day</option>
-                <option value="4">Martin Luther King Jr Day</option>
-            </select><br>
-
-            <label for="weather">Weather:</label>
-            <select id="weather" name="weather" required>
-                <option value="1">Clouds</option>
-                <option value="0">Clear</option>
-                <option value="6">Rain</option>
-                <option value="2">Drizzle</option>
-                <option value="5">Mist</option>
-                <option value="4">Haze</option>
-                <option value="3">Fog</option>
-                <option value="10">Thunderstorm</option>
-                <option value="8">Snow</option>
-                <option value="9">Squall</option>
-                <option value="7">Smoke</option>
-            </select><br>
-
-            <label for="year">Year:</label>
-            <input type="number" name="year" id="year" min="2012" max="2022" placeholder="Year" required /><br>
-
-            <label for="month">Month:</label>
-            <input type="number" name="month" id="month" min="1" max="12" placeholder="Month" required /><br>
-
-            <label for="day">Day:</label>
-            <input type="number" name="day" id="day" min="1" max="31" placeholder="Day" required /><br>
-
-            <label for="hours">Hours:</label>
-            <input type="number" name="hours" id="hours" min="0" max="23" placeholder="Hours" required /><br>
-
-            <label for="minutes">Minutes:</label>
-            <input type="number" name="minutes" id="minutes" min="0" max="59" placeholder="Minutes" required /><br>
-
-            <label for="seconds">Seconds:</label>
-            <input type="number" name="seconds" id="seconds" min="0" max="59" placeholder="Seconds" required /><br>
-
-            <button type="submit" class="btn btn-primary btn-block btn-Large">Predict</button>
-        </form>
-        <br>
-        <h3>{{ prediction_text }}</h3>
+    <div class="container">
+        <h1>交通流量时序预测大屏 (Traffic Flow Prediction)</h1>
+        <div id="loading" class="loading">加载数据中... (Loading data...)</div>
+        <div id="chart"></div>
     </div>
+
+    <script>
+        var myChart = echarts.init(document.getElementById('chart'));
+
+        fetch('/api/predict')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('loading').innerText = '错误: ' + data.error;
+                    return;
+                }
+                document.getElementById('loading').style.display = 'none';
+
+                const histTimes = data.historical.times;
+                const histValues = data.historical.values;
+                const predTimes = data.prediction.times;
+                const predValues = data.prediction.values;
+
+                const lastHistTime = histTimes[histTimes.length - 1];
+                const lastHistValue = histValues[histValues.length - 1];
+                
+                const finalPredTimes = [lastHistTime, ...predTimes];
+                const finalPredValues = [lastHistValue, ...predValues];
+
+                const allTimes = [...histTimes, ...predTimes];
+
+                const histData = new Array(allTimes.length).fill(null);
+                for(let i=0; i<histTimes.length; i++) {
+                    histData[i] = histValues[i];
+                }
+
+                const predData = new Array(allTimes.length).fill(null);
+                const offset = histTimes.length - 1;
+                for(let i=0; i<finalPredTimes.length; i++) {
+                    predData[offset + i] = finalPredValues[i];
+                }
+
+                const option = {
+                    title: {
+                        text: '过去7天历史与未来48小时预测 (Past 7 Days & Next 48 Hours)',
+                        left: 'center',
+                        top: 0
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'cross' }
+                    },
+                    legend: {
+                        data: ['历史流量 (Historical)', '预测流量 (Prediction)'],
+                        top: 30
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '10%',
+                        top: 80,
+                        containLabel: true
+                    },
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            show: true,
+                            start: 70,
+                            end: 100
+                        },
+                        {
+                            type: 'inside',
+                            start: 70,
+                            end: 100
+                        }
+                    ],
+                    xAxis: {
+                        type: 'category',
+                        boundaryGap: false,
+                        data: allTimes,
+                        axisLabel: {
+                            formatter: function (value) {
+                                return value.substring(5, 16); // Show MM-DD HH:mm
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '交通流量 (Volume)'
+                    },
+                    series: [
+                        {
+                            name: '历史流量 (Historical)',
+                            type: 'line',
+                            smooth: true,
+                            itemStyle: { color: '#5470c6' },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(84,112,198,0.5)' },
+                                    { offset: 1, color: 'rgba(84,112,198,0.1)' }
+                                ])
+                            },
+                            data: histData
+                        },
+                        {
+                            name: '预测流量 (Prediction)',
+                            type: 'line',
+                            smooth: true,
+                            itemStyle: { color: '#ee6666' },
+                            lineStyle: { type: 'dashed', width: 3 },
+                            data: predData
+                        }
+                    ]
+                };
+
+                myChart.setOption(option);
+            })
+            .catch(error => {
+                document.getElementById('loading').innerText = '加载失败 (Failed to load data)';
+                console.error('Error fetching data:', error);
+            });
+
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
 </body>
 </html>
