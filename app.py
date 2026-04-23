@@ -5,20 +5,25 @@ import os
 from flask import Flask, request, render_template
 
 app = Flask(__name__)
-model = pickle.load(open('D:/SmartBridge-Project/model.pkl', 'rb'))
-scale = pickle.load(open('D:/SmartBridge-Project/scale.pkl', 'rb'))
+model = pickle.load(open('model.pkl', 'rb'))
+scale = pickle.load(open('scale.pkl', 'rb'))
 
 @app.route('/')  
 def home():
     return render_template('index.html')  
 
-@app.route('/predict', methods=["POST", "GET"]) 
 @app.route('/predict', methods=["POST"])
 def predict():
-    input_feature = [float(x) for x in request.form.values()]
+    # Retrieve values using keys to ensure correct order
+    feature_dict = request.form.to_dict()
+    
+    # Extract in the exact order the model expects
+    expected_order = ['holiday', 'temp', 'rain', 'snow', 'weather', 'day', 'month', 'year', 'hours', 'minutes', 'seconds']
+    input_feature = [float(feature_dict[col]) for col in expected_order]
+    
     features_values = [np.array(input_feature)]
 
-    data = pd.DataFrame(features_values, columns=scale.feature_names_in_)
+    data = pd.DataFrame(features_values, columns=expected_order)
     data = scale.transform(data)
 
     prediction = model.predict(data)
