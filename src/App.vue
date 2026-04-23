@@ -274,8 +274,8 @@ const fetchData = async () => {
   loading.value = true
   try {
     const [historyRes, predictRes] = await Promise.all([
-      axios.get('http://127.0.0.1:8000/api/history'),
-      axios.get('http://127.0.0.1:8000/api/predict')
+      axios.get('/api/history'),
+      axios.get('/api/predict')
     ])
     
     const histData = historyRes.data
