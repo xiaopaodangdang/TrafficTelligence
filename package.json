@@ -12,7 +12,7 @@
     "lint:fix": "eslint . --ext .ts,.vue --fix"
   },
   "dependencies": {
-    "@dataview/datav-vue3": "0.0.0-test.1672506674342",
+    "@kjgl77/datav-vue3": "^1.7.4",
     "axios": "^1.15.2",
     "clsx": "^2.1.1",
     "echarts": "^6.0.0",
