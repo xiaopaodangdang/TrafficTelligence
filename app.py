@@ -5,15 +5,14 @@ import os
 from flask import Flask, request, render_template
 
 app = Flask(__name__)
-model = pickle.load(open('D:/SmartBridge-Project/model.pkl', 'rb'))
-scale = pickle.load(open('D:/SmartBridge-Project/scale.pkl', 'rb'))
+model = pickle.load(open('model.pkl', 'rb'))
+scale = pickle.load(open('scale.pkl', 'rb'))
 
 @app.route('/')  
 def home():
     return render_template('index.html')  
 
-@app.route('/predict', methods=["POST", "GET"]) 
-@app.route('/predict', methods=["POST"])
+@app.route('/predict', methods=["POST", "GET"])
 def predict():
     input_feature = [float(x) for x in request.form.values()]
     features_values = [np.array(input_feature)]
